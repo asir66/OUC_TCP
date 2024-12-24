@@ -53,8 +53,8 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	// 1. 出错 2. 丢包 3. 延迟 4. 出错丢包 5. 出错延迟 6. 丢包延迟 7. 出错丢包延迟
 	public void udt_send(TCP_PACKET stcpPack) {
 		//设置错误控制标志
-		tcpH.setTh_eflag((byte)0);
-//		tcpH.setTh_eflag((byte)1);
+//		tcpH.setTh_eflag((byte)0);
+		tcpH.setTh_eflag((byte)1);
 		//System.out.println("to send: "+stcpPack.getTcpH().getTh_seq());				
 		//发送数据报
 		client.send(stcpPack);
@@ -71,7 +71,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			// System.out.println("CurrentAck: "+currentAck);
 			// 如果当前的包确认号是对的话代表这个包收到了
 			// 如果当前包确认号正确，那么就可以发送下一个包
-			if (currentAck == tcpPack.getTcpH().getTh_seq() + tcpPack.getTcpS().getDataLengthInByte() / 4){
+			if (currentAck == tcpPack.getTcpH().getTh_seq()){
 				System.out.println("Clear: "+tcpPack.getTcpH().getTh_seq());
 				flag = 1;
 				//break;
@@ -87,12 +87,19 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	@Override
 	//接收到ACK报文：检查校验和，将确认号插入ack队列;NACK的确认号为－1；不需要修改
 	public void recv(TCP_PACKET recvPack) {
-		System.out.println("Receive ACK Number： "+ recvPack.getTcpH().getTh_ack());
-		ackQueue.add(recvPack.getTcpH().getTh_ack());
-	    System.out.println();	
+		// 检查校验和
+		if(CheckSum.computeChkSum(recvPack) != recvPack.getTcpH().getTh_sum()){
+			udt_send(tcpPack);
+			flag = 0;
+		}else {
+
+			System.out.println("Receive ACK Number： "+ recvPack.getTcpH().getTh_ack());
+			ackQueue.add(recvPack.getTcpH().getTh_ack());
+	    	System.out.println();
 	   
-	    //处理ACK报文
-	    waitACK();
+	    	//处理ACK报文
+	    	waitACK();
+		}
 	   
 	}
 	
