@@ -25,8 +25,11 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	public void rdt_send(int dataIndex, int[] appData) {
 		
 		//生成TCP数据报（设置序号和数据字段/校验和),注意打包的顺序
+		// 因为TCP是按字节流编号，数据会事先计算MTU为多少，这里的appData就变成了规律的数，直至最后一个包
+		// ？？疑问，这里的seq应该是包中第一个字节的序号，而不是下一个的序号啊
 		tcpH.setTh_seq(dataIndex * appData.length + 1);//包序号设置为字节流号：
 		tcpS.setData(appData);
+		// destinAdd是目的地址
 		tcpPack = new TCP_PACKET(tcpH, tcpS, destinAddr);		
 		//更新带有checksum的TCP 报文头		
 		tcpH.setTh_sum(CheckSum.computeChkSum(tcpPack));
@@ -43,9 +46,11 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	
 	@Override
 	//不可靠发送：将打包好的TCP数据报通过不可靠传输信道发送；仅需修改错误标志
+	// 1. 出错 2. 丢包 3. 延迟 4. 出错丢包 5. 出错延迟 6. 丢包延迟 7. 出错丢包延迟
 	public void udt_send(TCP_PACKET stcpPack) {
 		//设置错误控制标志
-		tcpH.setTh_eflag((byte)0);		
+//		tcpH.setTh_eflag((byte)0);
+		tcpH.setTh_eflag((byte)1);
 		//System.out.println("to send: "+stcpPack.getTcpH().getTh_seq());				
 		//发送数据报
 		client.send(stcpPack);
@@ -57,13 +62,16 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		//循环检查ackQueue
 		//循环检查确认号对列中是否有新收到的ACK		
 		if(!ackQueue.isEmpty()){
+			// 取出当前的ACK确认号
 			int currentAck=ackQueue.poll();
 			// System.out.println("CurrentAck: "+currentAck);
+			// 如果当前的包确认号是对的话代表这个包收到了
 			if (currentAck == tcpPack.getTcpH().getTh_seq()){
 				System.out.println("Clear: "+tcpPack.getTcpH().getTh_seq());
 				flag = 1;
 				//break;
 			}else{
+				// 否则此包重发
 				System.out.println("Retransmit: "+tcpPack.getTcpH().getTh_seq());
 				udt_send(tcpPack);
 				flag = 0;
