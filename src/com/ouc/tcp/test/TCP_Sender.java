@@ -29,9 +29,9 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		// 因为TCP是按字节流编号，数据会事先计算MTU为多少，这里的appData就变成了规律的数，直至最后一个包
 		// 数据由于mtu的原因，appData是一致的,这里表征这个数据包中首个字节的编号
 		// 但是这里的包序号为字节流号感觉不对且怪怪的，序号应该为字节流号那么需要是
-		tcpH.setTh_seq(dataIndex * appData.length * 4+ 1);//包序号设置为字节流号：
+//		tcpH.setTh_seq(dataIndex * appData.length * 4+ 1);//包序号设置为字节流号：
 		// 原版
-		//tcpH.setTh_seq(dataIndex * appData.length +1);
+		tcpH.setTh_seq(dataIndex * appData.length +1);
 		tcpS.setData(appData);
 		// destinAdd是目的地址
 		tcpPack = new TCP_PACKET(tcpH, tcpS, destinAddr);		
@@ -53,8 +53,8 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	// 1. 出错 2. 丢包 3. 延迟 4. 出错丢包 5. 出错延迟 6. 丢包延迟 7. 出错丢包延迟
 	public void udt_send(TCP_PACKET stcpPack) {
 		//设置错误控制标志
-//		tcpH.setTh_eflag((byte)0);
-		tcpH.setTh_eflag((byte)1);
+		tcpH.setTh_eflag((byte)0);
+//		tcpH.setTh_eflag((byte)1);
 		//System.out.println("to send: "+stcpPack.getTcpH().getTh_seq());				
 		//发送数据报
 		client.send(stcpPack);
@@ -71,7 +71,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			// System.out.println("CurrentAck: "+currentAck);
 			// 如果当前的包确认号是对的话代表这个包收到了
 			// 如果当前包确认号正确，那么就可以发送下一个包
-			if (currentAck == tcpPack.getTcpH().getTh_seq() + tcpPack.getTcpS().getDataLengthInByte()){
+			if (currentAck == tcpPack.getTcpH().getTh_seq() + tcpPack.getTcpS().getDataLengthInByte() / 4){
 				System.out.println("Clear: "+tcpPack.getTcpH().getTh_seq());
 				flag = 1;
 				//break;

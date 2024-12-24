@@ -58,7 +58,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 		if(CheckSum.computeChkSum(recvPack) == recvPack.getTcpH().getTh_sum()) {
 			if(recvPack.getTcpH().getTh_seq() == expectAck){
 				// 得到期待的包
-				expectAck += recvPack.getTcpS().getDataLengthInByte();
+				expectAck += recvPack.getTcpS().getDataLengthInByte() / 4;
 				// 准备交付
 				dataQueue.add(recvPack.getTcpS().getData());
 				sequence++;
@@ -77,7 +77,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			System.out.println("Problem: Packet Number: "+recvPack.getTcpH().getTh_seq()+" + InnerSeq:  "+sequence);
 		}
 		// 处理结束，发送返回包
-		tcpH.setTh_ack(recvPack.getTcpH().getTh_seq() + recvPack.getTcpS().getDataLengthInByte());
+		tcpH.setTh_ack(recvPack.getTcpH().getTh_seq() + recvPack.getTcpS().getDataLengthInByte() / 4);
 		ackPack = new TCP_PACKET(tcpH, tcpS, recvPack.getSourceAddr());
 		tcpH.setTh_sum(CheckSum.computeChkSum(ackPack));
 		//回复ACK报文段
@@ -123,8 +123,8 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	//回复ACK报文段
 	public void reply(TCP_PACKET replyPack) {
 		//设置错误控制标志
-//		tcpH.setTh_eflag((byte)0);	//eFlag=0，信道无错误
-		tcpH.setTh_eflag((byte)1);
+		tcpH.setTh_eflag((byte)0);	//eFlag=0，信道无错误
+//		tcpH.setTh_eflag((byte)1);
 		//发送数据报
 		client.send(replyPack);
 	}
