@@ -13,7 +13,8 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	
 	private TCP_PACKET tcpPack;	//待发送的TCP数据报
 	private volatile int flag = 0;
-	
+
+
 	/*构造函数*/
 	public TCP_Sender() {
 		super();	//调用超类构造函数
@@ -26,8 +27,11 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		
 		//生成TCP数据报（设置序号和数据字段/校验和),注意打包的顺序
 		// 因为TCP是按字节流编号，数据会事先计算MTU为多少，这里的appData就变成了规律的数，直至最后一个包
-		// ？？疑问，这里的seq应该是包中第一个字节的序号，而不是下一个的序号啊
-		tcpH.setTh_seq(dataIndex * appData.length + 1);//包序号设置为字节流号：
+		// 数据由于mtu的原因，appData是一致的,这里表征这个数据包中首个字节的编号
+		// 但是这里的包序号为字节流号感觉不对且怪怪的，序号应该为字节流号那么需要是
+		tcpH.setTh_seq(dataIndex * appData.length * 4+ 1);//包序号设置为字节流号：
+		// 原版
+		//tcpH.setTh_seq(dataIndex * appData.length +1);
 		tcpS.setData(appData);
 		// destinAdd是目的地址
 		tcpPack = new TCP_PACKET(tcpH, tcpS, destinAddr);		
@@ -66,7 +70,8 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			int currentAck=ackQueue.poll();
 			// System.out.println("CurrentAck: "+currentAck);
 			// 如果当前的包确认号是对的话代表这个包收到了
-			if (currentAck == tcpPack.getTcpH().getTh_seq()){
+			// 如果当前包确认号正确，那么就可以发送下一个包
+			if (currentAck == tcpPack.getTcpH().getTh_seq() + tcpPack.getTcpS().getDataLengthInByte()){
 				System.out.println("Clear: "+tcpPack.getTcpH().getTh_seq());
 				flag = 1;
 				//break;
