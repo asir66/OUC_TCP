@@ -5,9 +5,11 @@ package com.ouc.tcp.test;
 
 import com.ouc.tcp.client.TCP_Sender_ADT;
 import com.ouc.tcp.client.UDT_RetransTask;
-import com.ouc.tcp.client.UDT_Timer;
+import com.ouc.tcp.client.UDT_Timer; // 用于实现定时器，伏笔
 import com.ouc.tcp.message.*;
 import com.ouc.tcp.tool.TCP_TOOL;
+
+import java.util.TimerTask;
 
 public class TCP_Sender extends TCP_Sender_ADT {
 	
@@ -20,7 +22,9 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		super();	//调用超类构造函数
 		super.initTCP_Sender(this);		//初始化TCP发送端
 	}
-	
+
+	UDT_Timer timer = new UDT_Timer(); // 初始化实例
+
 	@Override
 	//可靠发送（应用层调用）：封装应用层数据，产生TCP数据报；需要修改
 	public void rdt_send(int dataIndex, int[] appData) {
@@ -28,9 +32,6 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		//生成TCP数据报（设置序号和数据字段/校验和),注意打包的顺序
 		// 因为TCP是按字节流编号，数据会事先计算MTU为多少，这里的appData就变成了规律的数，直至最后一个包
 		// 数据由于mtu的原因，appData是一致的,这里表征这个数据包中首个字节的编号
-		// 但是这里的包序号为字节流号感觉不对且怪怪的，序号应该为字节流号那么需要是
-//		tcpH.setTh_seq(dataIndex * appData.length * 4+ 1);//包序号设置为字节流号：
-		// 原版
 		tcpH.setTh_seq(dataIndex * appData.length +1);
 		tcpS.setData(appData);
 		// destinAdd是目的地址
@@ -40,12 +41,35 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		tcpPack.setTcpH(tcpH);
 		
 		//发送TCP数据报
-		udt_send(tcpPack);
 		flag = 0;
-		
+		udt_send(tcpPack);
+		startTimer();
+
 		//等待ACK报文
 		//waitACK();
 		while (flag==0);
+	}
+
+	private void startTimer() {
+		// 如果定时器存在要取消先前的计时器
+		if (timer != null) {
+			timer.cancel();
+		}
+		// 创建新的
+		timer = new UDT_Timer();
+		// 设置调度任务
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if (flag == 0) {
+					// 超时
+					System.out.println("Time out, Retransmit: "+tcpPack.getTcpH().getTh_seq());
+					// 重传
+					udt_send(tcpPack);
+					startTimer();
+				}
+			}
+		}, 1000);
 	}
 	
 	@Override
@@ -54,7 +78,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	public void udt_send(TCP_PACKET stcpPack) {
 		//设置错误控制标志
 //		tcpH.setTh_eflag((byte)0);
-		tcpH.setTh_eflag((byte)1);
+		tcpH.setTh_eflag((byte)4);
 		//System.out.println("to send: "+stcpPack.getTcpH().getTh_seq());				
 		//发送数据报
 		client.send(stcpPack);
@@ -78,6 +102,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			}else{
 				System.out.println("Retransmit: "+tcpPack.getTcpH().getTh_seq());
 				udt_send(tcpPack);
+				startTimer();
 				flag = 0;
 			}
 		}
@@ -89,16 +114,18 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		// 检查校验和
 		if(CheckSum.computeChkSum(recvPack) != recvPack.getTcpH().getTh_sum()){
 			udt_send(tcpPack);
+			startTimer();
 			flag = 0;
 		}else {
 			System.out.println("Receive ACK Number： "+ recvPack.getTcpH().getTh_ack());
 			ackQueue.add(recvPack.getTcpH().getTh_ack());
 	    	System.out.println();
+			if (timer != null) {
+				timer.cancel(); // 取消定时器
+			}
 	   
 	    	//处理ACK报文
 	    	waitACK();
 		}
-	   
 	}
-	
 }
