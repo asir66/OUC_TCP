@@ -76,7 +76,6 @@ public class TCP_Sender extends TCP_Sender_ADT {
 				flag = 1;
 				//break;
 			}else{
-				// 否则此包重发
 				System.out.println("Retransmit: "+tcpPack.getTcpH().getTh_seq());
 				udt_send(tcpPack);
 				flag = 0;
@@ -92,7 +91,6 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			udt_send(tcpPack);
 			flag = 0;
 		}else {
-
 			System.out.println("Receive ACK Number： "+ recvPack.getTcpH().getTh_ack());
 			ackQueue.add(recvPack.getTcpH().getTh_ack());
 	    	System.out.println();
