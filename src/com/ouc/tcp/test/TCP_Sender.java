@@ -4,18 +4,14 @@
 package com.ouc.tcp.test;
 
 import com.ouc.tcp.client.TCP_Sender_ADT;
-import com.ouc.tcp.client.UDT_RetransTask;
-import com.ouc.tcp.client.UDT_Timer; // 用于实现定时器，伏笔
 import com.ouc.tcp.message.*;
-import com.ouc.tcp.tool.TCP_TOOL;
-
-import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class TCP_Sender extends TCP_Sender_ADT {
 	
 	private TCP_PACKET tcpPack;	//待发送的TCP数据报
 	private volatile int flag = 1; // 窗口满标志
+
 
 	private SenderSlidingWindow ssWindow = new SenderSlidingWindow(this); // 发送窗口
 
@@ -31,8 +27,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 		//生成TCP数据报（设置序号和数据字段/校验和),注意打包的顺序
 		tcpH.setTh_seq(dataIndex * appData.length +1);
 		tcpS.setData(appData);
-		// destinAdd是目的地址
-		tcpPack = new TCP_PACKET(tcpH, tcpS, destinAddr);		
+		tcpPack = new TCP_PACKET(tcpH, tcpS, destinAddr);
 		//更新带有checksum的TCP 报文头
 		tcpH.setTh_sum(CheckSum.computeChkSum(tcpPack));
 		tcpPack.setTcpH(tcpH);

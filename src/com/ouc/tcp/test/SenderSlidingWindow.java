@@ -2,16 +2,13 @@ package com.ouc.tcp.test;
 
 import com.ouc.tcp.client.UDT_Timer;
 import com.ouc.tcp.message.TCP_PACKET;
-
-import javax.xml.bind.SchemaOutputResolver;
-import java.util.Timer;
 import java.util.TimerTask;
 
 public class SenderSlidingWindow extends SlidingWindow {
-    volatile int base = 1; // 期待的ACK
     private volatile UDT_Timer timer = null; // 定时器
     private TCP_Sender tcpSender = null; // 发送端
     private volatile int repAck = 0; // 重复确认次数
+
 
     // 构造函数
     public SenderSlidingWindow(TCP_Sender tcpSender) {
@@ -28,7 +25,6 @@ public class SenderSlidingWindow extends SlidingWindow {
                 e.printStackTrace();
             }
         }
-
         timer = new UDT_Timer();
         timer.schedule( new TimerTask() {
             @Override
@@ -41,10 +37,6 @@ public class SenderSlidingWindow extends SlidingWindow {
     }
 
     public boolean putPacket(TCP_PACKET packet){
-        if (isFull()) {
-            return false;
-        }
-
         if (packet.getTcpH().getTh_seq() > base + windowSize * singlePacketSize) {
             return false;
         }
@@ -56,17 +48,21 @@ public class SenderSlidingWindow extends SlidingWindow {
         if (ack >= base+windowSize*singlePacketSize) {
             return false;
         }
+
+        if (base > finalSeq) {
+            return false;
+        }
+
         if (ack == base - singlePacketSize) { // 快速重传
             repAck++;
             if (repAck == 3) {
-                System.out.println("base:"+base);
-                System.out.println("packet:"+dataMap.get(base).getTcpH().getTh_seq());
+//                System.out.println("base:"+base);
+//                System.out.println("packet:"+dataMap.get(base).getTcpH().getTh_seq());
                 repAck = 0;
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
                 startTimer();
             }
         } else {
-            //要么ack == base, 要么ack > base
             slide(ack);
         }
         return true;
