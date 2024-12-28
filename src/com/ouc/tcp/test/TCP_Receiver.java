@@ -68,11 +68,11 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			}
 			rsWindow.slide();
 			reply(ackPack);
-		} else {
+		} else if (expectAck < base){ // 收到后面的包或者重复包或者错误的包
 			reply(ackPack);
 		}
 
-		if (dataQueue.size() >= 20){
+		if (dataQueue.size() >= 20 || expectAck >= rsWindow.finalSeq){
 			deliver_data();
 		}
 	}
@@ -125,6 +125,9 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			public void run() {
 				rsWindow.slide();
 				reply(ackPack);
+				if (ackPack.getTcpH().getTh_ack() >= rsWindow.finalSeq){
+					timer.cancel();
+				}
 			}
 		}, 500);
 	}

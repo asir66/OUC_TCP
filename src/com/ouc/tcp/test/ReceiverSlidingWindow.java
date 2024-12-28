@@ -19,10 +19,15 @@ public class ReceiverSlidingWindow extends SlidingWindow {
     }
 
     int putPacket(TCP_PACKET packet) {
-        if (dataMap.containsKey(packet.getTcpH().getTh_seq())) { // 发送存在过的包
+        int seq = packet.getTcpH().getTh_seq();
+        if (seq > base + windowSize * singlePacketSize || seq < base) {
             return base;
         }
-        dataMap.put(packet.getTcpH().getTh_seq(), packet);
+
+        if (dataMap.containsKey(seq)) { // 发送存在过的包
+            return base;
+        }
+        dataMap.put(seq, packet);
 
         int tmp = base;
         while(dataMap.containsKey(tmp)) {
