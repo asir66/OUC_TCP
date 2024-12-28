@@ -36,8 +36,8 @@ public class SenderSlidingWindow extends SlidingWindow {
                 // 超时重传
                 System.out.println("超时重传");
                 tcpSender.udt_send(dataMap.get(base));
-                cwnd = 1;
                 ssthresh = cwnd / 2;
+                cwnd = 1;
                 startTimer();
             }
         }, 3000);
@@ -65,11 +65,11 @@ public class SenderSlidingWindow extends SlidingWindow {
         if (ack == base - singlePacketSize) { // 快速重传
             repAck++;
             if (repAck == 3) {
-                System.out.println("这里出现了冗余三次的快速重传");
+                System.out.println("这里出现了冗余三次的快速重传, 接下来要快恢复");
                 repAck = 0;
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
-                cwnd = 1;
                 ssthresh = cwnd / 2;
+                cwnd = 1;
                 startTimer();
             }
         } else {
