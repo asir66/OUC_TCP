@@ -34,10 +34,10 @@ public class SenderSlidingWindow extends SlidingWindow {
             @Override
             public void run() {
                 // 超时重传
-                System.out.println("超时重传");
+                System.out.println("超时重传，开始慢开始");
                 tcpSender.udt_send(dataMap.get(base));
-                cwnd = 1;
                 ssthresh = cwnd / 2;
+                cwnd = 1;
                 startTimer();
             }
         }, 3000);
@@ -65,18 +65,22 @@ public class SenderSlidingWindow extends SlidingWindow {
         if (ack == base - singlePacketSize) { // 快速重传
             repAck++;
             if (repAck == 3) {
-                System.out.println("这里出现了冗余三次的快速重传");
+                System.out.println("这里出现了冗余三次的快速重传，接下来要快恢复");
                 repAck = 0;
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
-                cwnd = 1;
                 ssthresh = cwnd / 2;
+                cwnd = ssthresh;
                 startTimer();
+            } else if (cwnd < windowSize){
+                // 收到冗余ack
+                cwnd++;
             }
         } else {
             // 在这里接收到了合理的ack
             slide(ack);
             startTimer();
-            tahoe();
+//            tahoe();
+            reno();
         }
         return true;
     }
@@ -87,14 +91,16 @@ public class SenderSlidingWindow extends SlidingWindow {
         }
     }
 
-    void tahoe(){
-        if (cwnd != windowSize){
+    void reno(){
+        if (cwnd < windowSize){
             if (cwnd < ssthresh) {
-                System.out.println("慢启动cwnd="+cwnd);
-                cwnd *= 2;
+                System.out.println("慢开始，cwnd = " + cwnd);
+                cwnd*=2;
+                System.out.println("慢开始，cwnd = " + cwnd);
             } else {
-                System.out.println("拥塞避免cwnd="+cwnd);
+                System.out.println("拥塞避免，cwnd = " + cwnd);
                 cwnd++;
+                System.out.println("拥塞避免，cwnd = " + cwnd);
             }
         }
     }
