@@ -22,47 +22,26 @@ public class ReceiverSlidingWindow extends SlidingWindow {
         if (dataMap.containsKey(packet.getTcpH().getTh_seq())) { // 发送存在过的包
             return base;
         }
-        try {
-            dataMap.put(packet.getTcpH().getTh_seq(), packet.clone());
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
+        dataMap.put(packet.getTcpH().getTh_seq(), packet);
+
+        int tmp = base;
+        while(dataMap.containsKey(tmp)) {
+            tmp += singlePacketSize;
         }
-        return slide();
+
+        return tmp;
     }
+
 
     int slide() {
         while(dataMap.containsKey(base)) { // 存在这个包
+            // 调用接口实现滑动时顺序上交包
+            System.out.println("窗口开始滑动：传输的分组是" + base);
             tcpReceiver.setDataQueue(dataMap.get(base).getTcpS().getData());
             base += singlePacketSize;
         }
+        tcpReceiver.base = base;
         return base; // 这个是期待的ack
     }
-
-
-    //////
-
-    void startTimer(TCP_PACKET ackPack) {
-        if (timer != null) {
-            timer.cancel();
-        }
-
-        if (base > finalSeq) {
-            return;
-        }
-
-        timer = new UDT_Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                tcpReceiver.expectAck = base;
-                tcpReceiver.reply(ackPack);
-                startTimer(tcpReceiver.ackPack);
-            }
-        }, 500);
-    }
-
-
-
-
 
 }

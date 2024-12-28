@@ -25,6 +25,10 @@ public class SenderSlidingWindow extends SlidingWindow {
                 e.printStackTrace();
             }
         }
+
+        if (base > finalSeq) { // 由于这里是递归的，所以要加上结束
+            return;
+        }
         timer = new UDT_Timer();
         timer.schedule( new TimerTask() {
             @Override
@@ -64,6 +68,7 @@ public class SenderSlidingWindow extends SlidingWindow {
             }
         } else {
             slide(ack);
+            startTimer();
         }
         return true;
     }

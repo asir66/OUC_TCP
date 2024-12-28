@@ -16,10 +16,11 @@ import com.ouc.tcp.tool.TCP_TOOL;
 public class TCP_Receiver extends TCP_Receiver_ADT {
 	
 //	private TCP_PACKET ackPack;	//回复的ACK报文段
+	// 所以ackPack复用的
 	TCP_PACKET ackPack;
 	// 接收端维护的期望序号
 	volatile int expectAck = 1; // 用来表征期待的ACK，所以是比收到的大的，返回的是真正收到的
-	volatile int contSeq = 1; // 用来表征收到了的连续的最新的包号
+	volatile int base = 1; // 窗口的后沿 || ==1 同步
 
 	ReceiverSlidingWindow rsWindow = new ReceiverSlidingWindow(this); // 接收窗口
 	private UDT_Timer timer = null; // 定时器
@@ -33,11 +34,12 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	@Override
 	//接收到数据报：检查校验和，设置回复的ACK报文段
 	public void rdt_recv(TCP_PACKET recvPack) {
-		contSeq = expectAck - rsWindow.singlePacketSize;
+//		System.out.println("**************************\n接收包: " + recvPack.getTcpH().getTh_seq());
 		//检查校验码
 		if(CheckSum.computeChkSum(recvPack) == recvPack.getTcpH().getTh_sum()) {
+			// 填包,一定要用clone
             try {
-                contSeq = rsWindow.putPacket(recvPack.clone()) - rsWindow.singlePacketSize;
+                expectAck = rsWindow.putPacket(recvPack.clone());
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e);
             }
@@ -48,21 +50,26 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			System.out.println("Recieved Packet"+recvPack.getTcpH().getTh_sum());
 		}
 
-		tcpH.setTh_ack(contSeq);
+		// 造回复包
+		tcpH.setTh_ack(expectAck - rsWindow.singlePacketSize);
 		ackPack = new TCP_PACKET(tcpH, tcpS, recvPack.getSourceAddr());
 		tcpH.setTh_sum(CheckSum.computeChkSum(ackPack));
 
-		if (contSeq == expectAck) { // 遇到期待的序号,延迟
-//			expectAck += rsWindow.singlePacketSize;
-//			reply(ackPack);
-			rsWindow.startTimer(ackPack);
-		} else if (contSeq > expectAck) { // 连续滑动
-			expectAck = contSeq + rsWindow.singlePacketSize;
+		// 三种情况
+		// 1. 是期待的序号
+		// 2. 是连续滑动的序号
+		// 3. 重复/出错/乱序
+
+		if (expectAck == base + rsWindow.singlePacketSize){
+			startTimer();
+		} else if (expectAck > base){ // 滑动
+			if (timer != null) {
+				timer.cancel();
+			}
+			rsWindow.slide();
 			reply(ackPack);
-			rsWindow.startTimer(ackPack);
-		} else { // 重复/出错/乱序
+		} else {
 			reply(ackPack);
-			rsWindow.startTimer(ackPack);
 		}
 
 		if (dataQueue.size() >= 20){
@@ -102,31 +109,25 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	//回复ACK报文段
 	public void reply(TCP_PACKET replyPack) {
 		//设置错误控制标志
-		tcpH.setTh_eflag((byte)1);
+		tcpH.setTh_eflag((byte)7);
 		//发送数据报
 		client.send(replyPack);
 	}
 
-//	void startTimer() {
-//		if (timer != null) {
-//			timer.cancel();
-//		}
-//
-//		if (expectAck > finalSeq) {
-//			return;
-//		}
-//
-//		timer = new UDT_Timer();
-//		timer.schedule(new TimerTask() {
-//			@Override
-//			public void run() {
-//				expectAck = contSeq + rsWindow.singlePacketSize;
-//				reply(ackPack);
-//				startTimer();
-//			}
-//		}, 500);
-//	}
+	void startTimer() {
+		if (timer != null) {
+			timer.cancel();
+		}
 
+		timer = new UDT_Timer();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				rsWindow.slide();
+				reply(ackPack);
+			}
+		}, 500);
+	}
 	void setDataQueue(int[] data) {
 		dataQueue.add(data);
 	}

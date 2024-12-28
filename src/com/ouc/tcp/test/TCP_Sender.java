@@ -47,7 +47,13 @@ public class TCP_Sender extends TCP_Sender_ADT {
 			e.printStackTrace();
 		}
 		//发送TCP数据报
-		udt_send(tcpPack);
+        try {
+            udt_send(tcpPack.clone());
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+        // 发送包
+//		System.out.println("**********************\n发送包:" + tcpPack.getTcpH().getTh_seq());
 	}
 
 	@Override
@@ -55,7 +61,7 @@ public class TCP_Sender extends TCP_Sender_ADT {
 	// 1. 出错 2. 丢包 3. 延迟 4. 出错丢包 5. 出错延迟 6. 丢包延迟 7. 出错丢包延迟
 	public void udt_send(TCP_PACKET stcpPack) {
 		//设置错误控制标志
-		tcpH.setTh_eflag((byte)1);
+		tcpH.setTh_eflag((byte)7);
 		//System.out.println("to send: "+stcpPack.getTcpH().getTh_seq());				
 		//发送数据报
 		client.send(stcpPack);
