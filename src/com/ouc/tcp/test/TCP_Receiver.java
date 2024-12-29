@@ -60,7 +60,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 		// 2. 是连续滑动的序号
 		// 3. 重复/出错/乱序
 
-		if (expectAck == base + rsWindow.singlePacketSize){
+		if (recvPack.getTcpH().getTh_seq() == base && expectAck == base + rsWindow.singlePacketSize){
 			startTimer();
 		} else if (expectAck > base){ // 滑动
 			if (timer != null) {
