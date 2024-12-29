@@ -41,7 +41,7 @@ public class ReceiverSlidingWindow extends SlidingWindow {
     int slide() {
         while(dataMap.containsKey(base)) { // 存在这个包
             // 调用接口实现滑动时顺序上交包
-            System.out.println("窗口开始滑动：传输的分组是" + base);
+            System.out.println("接收方窗口开始滑动：传输的分组是" + base);
             tcpReceiver.setDataQueue(dataMap.get(base).getTcpS().getData());
             base += singlePacketSize;
         }

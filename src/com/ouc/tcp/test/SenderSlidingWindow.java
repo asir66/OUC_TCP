@@ -33,6 +33,7 @@ public class SenderSlidingWindow extends SlidingWindow {
         timer.schedule( new TimerTask() {
             @Override
             public void run() {
+                System.out.println("发生了超时重传，base" + base);
                 // 超时重传
                 tcpSender.udt_send(dataMap.get(base));
                 startTimer();
@@ -60,8 +61,7 @@ public class SenderSlidingWindow extends SlidingWindow {
         if (ack == base - singlePacketSize) { // 快速重传
             repAck++;
             if (repAck == 3) {
-//                System.out.println("base:"+base);
-//                System.out.println("packet:"+dataMap.get(base).getTcpH().getTh_seq());
+                System.out.println("发生了快速重传，base" + base);
                 repAck = 0;
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
                 startTimer();
@@ -74,7 +74,9 @@ public class SenderSlidingWindow extends SlidingWindow {
     }
 
     void slide(int ack){
+        System.out.println("接收到的ack是" + ack);
         for (; base <= ack; base += singlePacketSize) {
+            System.out.println("发送方窗口开始滑动：出窗口的分组是" + base);
             dataMap.remove(base);
         }
     }
