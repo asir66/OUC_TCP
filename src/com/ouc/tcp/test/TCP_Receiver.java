@@ -60,7 +60,8 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 		// 2. 是连续滑动的序号
 		// 3. 重复/出错/乱序
 
-		if (expectAck == base + rsWindow.singlePacketSize){
+		if (recvPack.getTcpH().getTh_seq() == base){ // 期待的包
+			System.out.println("拿到窗口后沿的包，等待500ms");
 			startTimer();
 		} else if (expectAck > base){ // 滑动
 			if (timer != null) {
@@ -68,7 +69,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			}
 			rsWindow.slide();
 			reply(ackPack);
-		} else if (recvPack.getTcpH().getTh_seq() > base - rsWindow.singlePacketSize * rsWindow.windowSize){ // 收到后面的包或者重复包或者错误的包
+		} else { // if (recvPack.getTcpH().getTh_seq() > base - rsWindow.singlePacketSize * rsWindow.windowSize){ // 收到后面的包或者重复包或者错误的包
 			reply(ackPack);
 		}
 

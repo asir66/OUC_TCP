@@ -66,6 +66,7 @@ public class SenderSlidingWindow extends SlidingWindow {
             repAck++;
             if (repAck == 3) {
                 System.out.println("这里出现了冗余三次的快速重传，接下来要快恢复");
+                System.out.println("cwnd = " + cwnd);
                 repAck = 0;
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
                 ssthresh = cwnd / 2;
@@ -76,6 +77,7 @@ public class SenderSlidingWindow extends SlidingWindow {
                 cwnd++;
             }
         } else {
+            repAck = 0;
             // 在这里接收到了合理的ack
             slide(ack);
             startTimer();
