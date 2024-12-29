@@ -8,6 +8,7 @@ public class SenderSlidingWindow extends SlidingWindow {
     private volatile UDT_Timer timer = null; // 定时器
     private TCP_Sender tcpSender = null; // 发送端
     private volatile int repAck = 0; // 重复确认次数
+    int virtualBase = 1 - singlePacketSize; // 虚假的窗口后沿, base是要发的，这个表已发的最老的
 
 
     // 构造函数
@@ -39,6 +40,7 @@ public class SenderSlidingWindow extends SlidingWindow {
                 tcpSender.udt_send(dataMap.get(base));
                 ssthresh = cwnd / 2;
                 cwnd = 1;
+                virtualBase = base - singlePacketSize;
                 startTimer();
             }
         }, 3000);
@@ -72,14 +74,15 @@ public class SenderSlidingWindow extends SlidingWindow {
                 tcpSender.udt_send(dataMap.get(base)); // 这里出现了错误，没有发base
                 ssthresh = cwnd / 2;
                 cwnd = 1;
+                virtualBase = base - singlePacketSize;
                 startTimer();
             }
         } else {
             repAck = 0;// 测试，
             // 在这里接收到了合理的ack
             slide(ack);
+            tahoe(ack); // 这里是tahoe算法
             startTimer();
-            tahoe();
         }
         return true;
     }
@@ -90,13 +93,20 @@ public class SenderSlidingWindow extends SlidingWindow {
         }
     }
 
-    void tahoe(){
+    void tahoe(int recvAck){
         if (cwnd != windowSize){
-            if (cwnd < ssthresh) {
-                System.out.println("慢启动阶段cwnd="+cwnd);
-                cwnd *= 2;
-                System.out.println("慢启动阶段cwnd="+cwnd);
-            } else {
+            if(cwnd < ssthresh){
+                if (recvAck >= virtualBase + cwnd * singlePacketSize) { // 满一个轮次
+                    System.out.println("一个轮次过去了，开始cwnd加倍");
+                    // 只针对慢启动阶段
+                    System.out.println("慢启动阶段cwnd="+cwnd);
+                    cwnd *= 2;
+                    System.out.println("慢启动阶段cwnd="+cwnd);
+                    virtualBase = base - singlePacketSize;
+                } else {
+                    System.out.println("一个轮次还没有过去，还差" + (cwnd - (recvAck - virtualBase) / singlePacketSize));
+                }
+            } else { // 拥塞避免
                 System.out.println("拥塞避免阶段cwnd="+cwnd);
                 cwnd++;
                 System.out.println("拥塞避免阶段cwnd="+cwnd);
