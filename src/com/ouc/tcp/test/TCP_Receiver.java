@@ -21,6 +21,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	// 接收端维护的期望序号
 	volatile int expectAck = 1; // 用来表征期待的ACK，所以是比收到的大的，返回的是真正收到的
 	volatile int base = 1; // 窗口的后沿 || ==1 同步
+//	boolean isWait = false; // 是否在等待状态
 
 	ReceiverSlidingWindow rsWindow = new ReceiverSlidingWindow(this); // 接收窗口
 	private UDT_Timer timer = null; // 定时器
@@ -64,11 +65,11 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			System.out.println("拿到窗口后沿的包，等待500ms");
 			startTimer();
 		} else if (expectAck > base){ // 滑动
-			if (timer != null) {
-				timer.cancel();
-			}
-			rsWindow.slide();
-			reply(ackPack);
+//			if (timer != null) {
+//				timer.cancel();
+//			}
+//			rsWindow.slide();
+//			reply(ackPack);
 		} else { // if (recvPack.getTcpH().getTh_seq() > base - rsWindow.singlePacketSize * rsWindow.windowSize){ // 收到后面的包或者重复包或者错误的包
 			reply(ackPack);
 		}

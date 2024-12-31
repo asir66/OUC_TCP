@@ -20,7 +20,7 @@ public class ReceiverSlidingWindow extends SlidingWindow {
 
     int putPacket(TCP_PACKET packet) {
         int seq = packet.getTcpH().getTh_seq();
-        if (seq > base + windowSize * singlePacketSize || seq < base) {
+        if (seq > base + windowSize * singlePacketSize || seq < base) { // 不在窗口内
             return base;
         }
 
